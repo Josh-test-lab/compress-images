@@ -20,51 +20,135 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 image_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.gif', '.avif', '.heic']
 
-def should_skip(filename):
+def should_skip(filename: str,
+                original_suffix: str='_original',
+                skip_suffix: str='_skip',
+                skip_original: bool=True,
+                skip_skip: bool=True
+                ) -> bool:
+    """
+    Determine whether to skip a file based on its name.
+
+    Parameters:
+        filename (str): The name of the file to check.
+        original_suffix (str, optional): The suffix indicating an original file.
+        skip_suffix (str, optional): The suffix indicating a skipped file.
+        skip_original (bool, optional): Whether to skip files with `original_suffix` suffix.
+        skip_skip (bool, optional): Whether to skip files with `skip_suffix` suffix.
+
+    Returns:
+        bool: True if the file should be skipped, False otherwise.
+    """
     name, _ = os.path.splitext(filename)
-    return name.endswith('_original') or name.endswith('_skip')
+    if skip_original and name.endswith(original_suffix):
+        return True
+    elif skip_skip and name.endswith(skip_suffix):
+        return True
+    return False
 
 def is_image(file_path):
+    """
+    Check if a file is a valid image.
+
+    Parameters:
+        file_path (str): The path to the file to check.
+
+    Returns:
+        bool: True if the file is a valid image, False otherwise.
+    """
     try:
         with Image.open(file_path) as img:
             img.verify()
         return True
     except Exception:
         return False
+    
+def backup_image(file_path: str,
+                 backup_folder: str = "original image",
+                 original_suffix: str = "_original") -> tuple[bool, str]:
+    """
+    Backup the original image before compression.
 
-def compress_image(file_path):
+    Parameters:
+        file_path (str): The path to the image file to backup.
+        backup_folder (str, optional): The folder where backups will be stored.
+        original_suffix (str, optional): The suffix to append to the original file name.
+
+    Returns:
+        tuple: A tuple containing a boolean indicating success or failure, and a message or backup path.
+    """
     foldername = os.path.dirname(file_path)
+    filename = os.path.basename(file_path)
+    name, ext = os.path.splitext(filename)
+
+    backup_dir = os.path.join(foldername, backup_folder)
+    os.makedirs(backup_dir, exist_ok=True)
+
+    backup_path = os.path.join(backup_dir, f"{name}{original_suffix}{ext}")
+    if os.path.exists(backup_path):
+        return False, "已備份，跳過"
+
+    try:
+        shutil.copy2(file_path, backup_path)
+        return True, backup_path
+    except Exception as e:
+        return False, f"備份錯誤: {e}"
+
+def compress_image(file_path: str,
+                   compress_quality: int = 85,
+                   backup: bool = True,
+                   backup_folder: str = "original image",
+                   original_suffix: str = '_original') -> tuple:
+    """
+    Compress an image file.
+
+    Parameters:
+        file_path (str): The path to the image file to compress.
+        compress_quality (int, optional): The quality level for compression (1-100).
+        backup (bool, optional): Whether to backup the original image before compression.
+        backup_folder (str, optional): The folder where backups will be stored.
+        original_suffix (str, optional): The suffix to append to the original file name.
+
+    Returns:
+        tuple: A tuple containing the file path, size before compression, size after compression, status message, file extension, and timestamp.
+    """
     filename = os.path.basename(file_path)
     name, ext = os.path.splitext(filename)
     ext_lower = ext.lower()
 
-    original_dir = os.path.join(foldername, "original image")
-    os.makedirs(original_dir, exist_ok=True)
-    backup_path = os.path.join(original_dir, f"{name}_original{ext}")
-
-    if os.path.exists(backup_path):
-        return (file_path, 0, 0, "已備份，跳過", ext_lower, "")
-
-    start_time = time.time()
+    if backup:
+        backed_up, backup_status = backup_image(file_path, backup_folder, original_suffix)
+        if not backed_up:
+            return (file_path, 0, 0, backup_status, ext_lower, "")
 
     try:
-        shutil.copy2(file_path, backup_path)
         size_before = os.path.getsize(file_path)
 
         with Image.open(file_path) as img:
-            img.save(file_path, optimize=True, quality=85)
+            img.save(file_path, optimize=True, quality=compress_quality)
 
         size_after = os.path.getsize(file_path)
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         return (file_path, size_before, size_after, "成功壓縮", ext_lower, timestamp)
 
     except Exception as e:
-        return (file_path, 0, 0, f"錯誤: {e}", ext_lower, "")
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        return (file_path, 0, 0, f"壓縮錯誤: {e}", ext_lower, timestamp)
 
-def get_all_images(root_path):
+def get_all_images(root_path, backup_folder="original image"):
+    """
+    Recursively get all image files in the specified directory, excluding the backup folder.
+    
+    Parameters:
+        root_path (str): The root directory to search for images.
+        backup_folder (str, optional): The folder name to exclude from the search.
+
+    Returns:
+        list: A list of paths to image files found in the directory.
+    """
     all_files = []
     for foldername, _, filenames in os.walk(root_path):
-        if os.path.basename(foldername).lower() == "original image":
+        if os.path.basename(foldername).lower() == backup_folder.lower():
             continue
         for filename in filenames:
             file_path = os.path.join(foldername, filename)
@@ -73,31 +157,25 @@ def get_all_images(root_path):
                 all_files.append(file_path)
     return all_files
 
-def process_directory(root_path):
-    start_time = datetime.now()
+def print_summary_report(results: list,
+                         start_time,
+                         end_time,
+                         elapsed,
+                         total_files: int,
+                         count_success: int,
+                         count_skipped: int,
+                         count_original_backups: int,
+                         count_unreadable: int,
+                         count_error: int,
+                         total_before: int,
+                         total_after: int
+                         ) -> dict:
+    """
+    終端輸出壓縮詳細報表與統計摘要。
 
-
-    files = get_all_images(root_path)
-    total_before, total_after = 0, 0
-    results = []
-
-    print(f"共找到 {len(files)} 張圖片，開始處理...\n")
-
-    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-        futures = {executor.submit(compress_image, f): f for f in files}
-        for future in tqdm(as_completed(futures), total=len(futures), desc="壓縮中"):
-            file_path, before, after, status, ext, timestamp = future.result()
-            results.append((file_path, before, after, status, ext, timestamp))
-            if before and after:
-                total_before += before
-                total_after += after
-            tqdm.write(f"{status} - {file_path}")
-
-        
-    end_time = datetime.now()
-    elapsed = end_time - start_time
-
-
+    Returns:
+        dict: 副檔名統計資訊
+    """
     print("\n📊 壓縮結果報表：")
     ext_stats = defaultdict(lambda: {"count": 0, "before": 0, "after": 0})
 
@@ -112,14 +190,7 @@ def process_directory(root_path):
         else:
             print(f"{file_path}\n  {status}")
 
-    # 圖片分類統計
-    total_files = len(files)
-    count_success = sum(1 for r in results if r[3] == "成功壓縮")
-    count_skipped = sum(1 for r in results if "跳過" in r[3])
-    count_error = sum(1 for r in results if r[3].startswith("錯誤"))
-    count_unreadable = sum(1 for r in results if r[5] == "") - count_skipped
-    count_original_backups = sum(1 for r in results if r[3] == "已備份，跳過")
-
+    # 總結輸出
     print(f"\n📦 壓縮總結：")
     print(f"⏱️ 壓縮開始時間：{start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"⏱️ 壓縮結束時間：{end_time.strftime('%Y-%m-%d %H:%M:%S')}")
@@ -136,12 +207,13 @@ def process_directory(root_path):
     print(f"    ❌ 圖片打開錯誤/非支援：{count_unreadable}")
     print(f"    ⚠ 壓縮錯誤：{count_error}")
 
+    # 空間節省
     print(f"\n  原始總大小: {total_before / 1024 / 1024:.2f} MB")
     print(f"  壓縮後大小: {total_after / 1024 / 1024:.2f} MB")
     if total_before:
         print(f"  節省空間: {(total_before - total_after) / 1024 / 1024:.2f} MB（減少 {((total_before - total_after) / total_before * 100):.1f}%）")
 
-    # 副檔名類型統計
+    # 副檔名統計
     print(f"\n📁 各副檔名類型統計：")
     for ext, stats in ext_stats.items():
         before_mb = stats["before"] / 1024 / 1024
@@ -150,9 +222,30 @@ def process_directory(root_path):
         percent = (savings / before_mb * 100) if before_mb > 0 else 0
         print(f"  {ext.upper():<6}：{stats['count']} 張  節省 {savings:.2f} MB（{percent:.1f}%）")
 
+    return ext_stats
 
-    # ➕ 輸出 CSV 報表
-    csv_path = os.path.join(root_path, "壓縮報表.csv")
+def write_csv_report(csv_path: str,
+                     start_time,
+                     end_time,
+                     elapsed,
+                     total_files: int,
+                     count_success: int,
+                     count_skipped: int,
+                     count_original_backups: int,
+                     count_unreadable: int,
+                     count_error: int,
+                     total_before: int,
+                     total_after: int,
+                     ext_stats: dict,
+                     results: list
+                     ) -> None:
+    """
+    輸出完整壓縮結果 CSV 報表。
+
+    Parameters:
+        csv_path (str): 輸出報表路徑
+        其他：各種統計與處理資料（如上）
+    """
     with open(csv_path, mode='w', newline='', encoding='utf-8-sig') as f:
         writer = csv.writer(f)
 
@@ -201,7 +294,7 @@ def process_directory(root_path):
                 f"{savings:.2f}",
                 f"{percent:.1f}"
             ])
-        
+
         writer.writerow([])  # 空行分隔區塊
 
         # 第三段：每張圖片詳細資料
@@ -222,10 +315,72 @@ def process_directory(root_path):
             else:
                 writer.writerow([file_path, ext, "", "", "", status, timestamp])
 
-
-
     print(f"\n📁 壓縮報表已儲存至：{csv_path}")
 
+def process_directory(root_path) -> None:
+    start_time = datetime.now()
+
+    files = get_all_images(root_path)
+    total_before, total_after = 0, 0
+    results = []
+
+    print(f"共找到 {len(files)} 張圖片，開始處理...\n")
+
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+        futures = {executor.submit(compress_image, f): f for f in files}
+        for future in tqdm(as_completed(futures), total=len(futures), desc="壓縮中"):
+            file_path, before, after, status, ext, timestamp = future.result()
+            results.append((file_path, before, after, status, ext, timestamp))
+            if before and after:
+                total_before += before
+                total_after += after
+            tqdm.write(f"{status} - {file_path}")
+
+        
+    end_time = datetime.now()
+    elapsed = end_time - start_time
+
+    # 統計分類
+    total_files = len(files)
+    count_success = sum(1 for r in results if r[3] == "成功壓縮")
+    count_skipped = sum(1 for r in results if "跳過" in r[3])
+    count_error = sum(1 for r in results if r[3].startswith("錯誤"))
+    count_unreadable = sum(1 for r in results if r[5] == "") - count_skipped
+    count_original_backups = sum(1 for r in results if r[3] == "已備份，跳過")
+
+    ext_stats = print_summary_report(results=results,
+                                     start_time=start_time,
+                                     end_time=end_time,
+                                     elapsed=elapsed,
+                                     total_files=total_files,
+                                     count_success=count_success,
+                                     count_skipped=count_skipped,
+                                     count_original_backups=count_original_backups,
+                                     count_unreadable=count_unreadable,
+                                     count_error=count_error,
+                                     total_before=total_before,
+                                     total_after=total_after
+                                     )
+
+    csv_path = os.path.join(root_path, "壓縮報表.csv")
+    write_csv_report(csv_path=csv_path,
+                     start_time=start_time,
+                     end_time=end_time,
+                     elapsed=elapsed,
+                     total_files=total_files,
+                     count_success=count_success,
+                     count_skipped=count_skipped,
+                     count_original_backups=count_original_backups,
+                     count_unreadable=count_unreadable,
+                     count_error=count_error,
+                     total_before=total_before,
+                     total_after=total_after,
+                     ext_stats=ext_stats,
+                     results=results
+                     )
+
+
+    
 
 if __name__ == "__main__":
     target_dir = input("請輸入要處理的資料夾路徑：").strip()
