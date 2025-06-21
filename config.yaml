@@ -1,0 +1,13 @@
+path: 
+compress_quality: 85
+backup: true
+backup_folder: original image
+original_suffix: _original
+skip_original: true
+skip_skip: true
+print_image_reduced: true
+print_summary: true
+save_summary_to_csv: true
+summary_folder: summary
+summary_filename: report
+
