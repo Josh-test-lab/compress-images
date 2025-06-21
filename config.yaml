@@ -1,13 +1,14 @@
-path: 
-compress_quality: 85
-backup: true
-backup_folder: original image
-original_suffix: _original
-skip_original: true
-skip_skip: true
-print_image_reduced: true
-print_summary: true
-save_summary_to_csv: true
-summary_folder: summary
-summary_filename: report
-
+path: ""                        # Folder path to process images
+compress_quality: 85            # Compression quality (1-100)
+backup: true                    # Whether to backup original images
+skip_original: true             # Whether to skip images already backed up
+skip_skip: true                 # Whether to skip images marked with '_skip' in name
+print_summary: true             # Whether to print the compression summary report
+print_image_reduced: true       # Whether to print info of compressed images
+save_summary_to_csv: true       # Whether to save summary report as CSV file
+summary_folder: summary         # Folder name to save summary reports
+summary_filename: report        # Summary report filename (without extension)
+backup_folder: original image   # Folder name to store backup images
+original_suffix: _original      # Suffix added to original images
+skip_suffix: _skip              # Suffix for images to skip
+lang_code: zh-tw                # Language code, e.g., 'zh-tw', 'en', etc.

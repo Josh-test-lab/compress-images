@@ -1,9 +1,85 @@
-start_time: "開始時間"
-end_time: "結束時間"
-elapsed_time: "花費時間"
-avg_time: "平均每張圖片處理時間 (秒)"
-summary: "壓縮總結"
-ext_summary: "各副檔名類型統計"
-file_report: "壓縮結果"
-saved_report: "壓縮結果已儲存至"
-no_success: "無成功壓縮的圖片，無法計算平均處理時間"
+# language/zh-tw.yaml
+general:
+  ask_input_path: "請輸入要壓縮的圖片資料夾路徑："
+  folder_not_found: "❌ 資料夾不存在，請重新確認路徑。"
+  missing_param: "⚠️ 缺少參數 `{key}`，使用預設值：{default}"
+  processing: "壓縮中"
+  start_processing: "共找到 {count} 張圖片，開始處理..."
+  finished_processing: "✅ 資料夾 \"{folder}\" 處理完成！"
+  saved_report: "📁 壓縮報表已儲存至：{path}"
+
+status:
+  compressed: "成功壓縮"
+  skipped: "已備份，跳過"
+  skip_keyword: "跳過"
+  error_keyword: "錯誤"
+  backup_error: "備份錯誤: {error}"
+  compress_error: "壓縮錯誤: {error}"
+
+report:
+  header_result: "📊 壓縮結果報表："
+  header_summary: "📦 壓縮總結："
+  header_ext_summary: "📁 各副檔名類型統計："
+
+  start_time: "⏱️ 壓縮開始時間：{time}"
+  end_time: "⏱️ 壓縮結束時間：{time}"
+  elapsed: "🕒 總耗時：{elapsed}"
+
+  total_images: "  總圖片數量：{count}"
+  compressed_success: "    ✔ 成功壓縮：{count}"
+  skipped_backup: "    ⏭ 已備份/跳過：{count}"
+  skipped_named: "    ⏹ _skip 命名跳過：{count}"
+  error_unreadable: "    ❌ 圖片打開錯誤/非支援：{count}"
+  error_failed: "    ⚠ 壓縮錯誤：{count}"
+
+  avg_time: "📊 平均每張圖片處理時間：{seconds:.2f} 秒"
+  no_avg_time: "📊 無成功壓縮的圖片，無法計算平均處理時間"
+
+  size_before: "  原始總大小: {mb:.2f} MB"
+  size_after: "  壓縮後大小: {mb:.2f} MB"
+  size_saved: "  節省空間: {mb:.2f} MB（減少 {percent:.1f}%）"
+
+  ext_format: "  {ext:<6}：{count} 張  節省 {savings:.2f} MB（{percent:.1f}%）"
+
+csv:
+  section_general: "📦 壓縮總結"
+  section_ext: "📁 各副檔名類型統計"
+  section_detail: "檔案詳細情況"
+
+  fields:
+    key: "項目"
+    value: "數值"
+
+    start_time: "開始時間"
+    end_time: "結束時間"
+    elapsed: "總耗時"
+    avg_time: "平均每張圖片處理時間 (秒)"
+    avg_time_unavailable: "平均每張圖片處理時間"
+    avg_time_cannot_calculate: "無法計算"
+
+    total_images: "總圖片數量"
+    compressed: "成功壓縮"
+    skipped_backup: "已備份/跳過"
+    skipped_named: "_skip 命名跳過"
+    unreadable: "圖片打開錯誤/非支援"
+    errors: "壓縮錯誤"
+
+    size_before: "原始總大小 (MB)"
+    size_after: "壓縮後大小 (MB)"
+    size_saved: "節省空間 (MB)"
+    size_percent: "節省百分比 (%)"
+
+    ext: "副檔名"
+    ext_count: "圖片數量"
+    ext_before: "原始大小 (MB)"
+    ext_after: "壓縮後大小 (MB)"
+    ext_saved: "節省空間 (MB)"
+    ext_percent: "節省百分比 (%)"
+
+    detail_path: "檔案路徑"
+    detail_ext: "副檔名"
+    detail_before: "原始大小 (KB)"
+    detail_after: "壓縮後大小 (KB)"
+    detail_percent: "節省百分比 (%)"
+    detail_status: "狀態"
+    detail_time: "處理時間"
