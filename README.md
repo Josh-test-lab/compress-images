@@ -6,7 +6,7 @@ Image Compression Tool
 This script compresses all images in a specified directory with optional backup and generates a summary report (CSV and/or console).
 
 - Author: Hsu, Yao-Chih
-- Version: 1140621
+- Version: v.1140621
 - License: MIT License
 - Email: hyc0113@hlc.edu.tw
 - GitHub: https://github.com/Josh-test-lab/compress-images
@@ -66,7 +66,7 @@ Command Line Arguments:
 --about
     Print author, version, license, email, and GitHub info.
 
---author / --email / --license / --status / --github
+--author / --license / --status / --github
     Individually print each specific metadata field.
 
 ------------------------

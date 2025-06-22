@@ -5,7 +5,7 @@ Image Compression Tool
 This script compresses all images in a specified directory with optional backup and generates a summary report (CSV and/or console).
 
 Author: Hsu, Yao-Chih
-Version: 1140621
+Version: v.1140621
 License: MIT License
 Email: hyc0113@hlc.edu.tw
 GitHub: https://github.com/Josh-test-lab/compress-images
@@ -63,9 +63,9 @@ Command Line Arguments:
     Print script version and exit.
 
 --about
-    Print author, version, license, email, and GitHub info.
+    Print author, version, license, and GitHub info.
 
---author / --email / --license / --status / --github
+--author / --license / --status / --github
     Individually print each specific metadata field.
 
 ------------------------
@@ -85,13 +85,12 @@ Print help:
     python compress_images.py --help
 """
 
-__author__ = "Hsu, Yao-Chih"
-__version__ = "1140621"  # YYYYMMDD format
-__license__ = "MIT"
-__email__ = "hyc0113@hlc.edu.tw"
-__status__ = "Development"             # "Production" or "Development"
-__description__ = "Image compression script with backup and CSV summary reporting."
-__github__ = "https://github.com/Josh-test-lab/compress-images"
+__author__ = 'Hsu, Yao-Chih'
+__version__ = 'v.1140621'  # YYYYMMDD format
+__license__ = 'MIT'
+__status__ = 'Development'             # 'Production' or 'Development'
+__description__ = 'Image compression script with backup and CSV summary reporting.'
+__github__ = 'https://github.com/Josh-test-lab/compress-images'
 
 # import modules
 import os
@@ -109,6 +108,8 @@ import yaml
 # global variables
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 image_extensions = ['.jpg', '.jpeg', '.png', '.webp', '.bmp', '.tiff', '.gif', '.avif', '.heic']
+global SKIP_COUNT
+SKIP_COUNT = 0
 
 # functions
 def compress_images():
@@ -136,7 +137,6 @@ def compress_images():
 
     parser.add_argument('--about',              action='store_true',                        help='Show all author and project info')
     parser.add_argument('--author',             action='store_true',                        help='Show author name only')
-    parser.add_argument('--email',              action='store_true',                        help='Show author email only')
     parser.add_argument('--license',            action='store_true',                        help='Show license type only')
     parser.add_argument('--status',             action='store_true',                        help='Show development status only')
     parser.add_argument('--github',             action='store_true',                        help='Show GitHub URL only')
@@ -146,27 +146,23 @@ def compress_images():
     config = _load_config(args.config)
 
     if args.about:
-        print(f"Author: {__author__}")
-        print(f"Email: {__email__}")
-        print(f"Version: {__version__}")
-        print(f"License: {__license__}")
-        print(f"Status: {__status__}")
-        print(f"GitHub: {__github__}")
+        print(f'Author: {__author__}')
+        print(f'Version: {__version__}')
+        print(f'License: {__license__}')
+        print(f'Status: {__status__}')
+        print(f'GitHub: {__github__}')
         return
     if args.author:
-        print(__author__)
-        return
-    if args.email:
-        print(__email__)
+        print(f'Author: {__author__}')
         return
     if args.license:
-        print(__license__)
+        print(f'License: {__license__}')
         return
     if args.status:
-        print(__status__)
+        print(f'Status: {__status__}')
         return
     if args.github:
-        print(__github__)
+        print(f'GitHub: {__github__}')
         return
 
     # CLI > config.yaml > default
@@ -178,7 +174,7 @@ def compress_images():
         if config_value is not None:
             return config_value
         if key != 'path':
-            print(t("general.missing_param").format(key=key, default=default))
+            print(t('general.missing_param').format(key=key, default=default))
         return default
 
     # global language dictionary
@@ -188,7 +184,7 @@ def compress_images():
     # target directory
     target_dir = get_param('path')
     if not target_dir:
-        target_dir = input(t("general.ask_input_path")).strip()
+        target_dir = input(t('general.ask_input_path')).strip()
 
     if os.path.isdir(target_dir):
         _process_directory(
@@ -206,9 +202,9 @@ def compress_images():
             summary_folder=get_param('summary_folder', 'summary'),
             summary_filename=get_param('summary_filename', 'report'),
         )
-        print(t("general.finished_processing").format(folder=target_dir))
+        print(t('general.finished_processing').format(folder=target_dir))
     else:
-        print(t("general.folder_not_found"))
+        print(t('general.folder_not_found'))
 
 def str2bool(v):
     """
@@ -312,30 +308,36 @@ def _process_directory(root_path: str,
     total_before, total_after = 0, 0
     results = []
 
-    print(t("general.start_processing").format(count=len(files)))
+    print(t('general.start_processing').format(count=len(files)))
 
     with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
         task = partial(_compress_image, compress_quality=compress_quality, backup=backup, backup_folder=backup_folder)
         futures = {executor.submit(task, f): f for f in files}
-        for future in tqdm(as_completed(futures), total=len(futures), desc=t("general.processing")):
+        for future in tqdm(as_completed(futures), total=len(futures), desc=t('general.processing')):
             file_path, before, after, status, ext, timestamp = future.result()
             results.append((file_path, before, after, status, ext, timestamp))
             if before and after:
                 total_before += before
                 total_after += after
-            if print_image_reduced:
-                tqdm.write(f'{status} - {file_path}')
-
+                if print_image_reduced:
+                    percent = (before - after) / before * 100
+                    tqdm.write(f'{status} - {file_path}' +
+                            f'\n {t("report.size_before").format(unit=t("report.KB"), size=before / 1024):<30}' +
+                            f'{t("report.size_after").format(unit=t("report.KB"), size=after / 1024):<30}' +
+                            f'{t("report.size_saved").format(unit=t("report.KB"), size=(before - after) / 1024, percent=percent)}'
+                            )
+            elif print_image_reduced:
+                    tqdm.write(f'{status} - {file_path}')
         
     end_time = datetime.now()
 
     # statistics
     total_files = len(files)
-    count_success = sum(1 for r in results if r[3] == t("status.compressed"))
-    count_skipped = sum(1 for r in results if t("status.skip_keyword") in r[3])
-    count_error = sum(1 for r in results if r[3].startswith(t("status.error_keyword")))
+    count_success = sum(1 for r in results if r[3] == t('status.compressed'))
+    count_skipped = sum(1 for r in results if t('status.skip_keyword') in r[3])
+    count_error = sum(1 for r in results if r[3].startswith(t('status.error_keyword')))
     count_unreadable = sum(1 for r in results if r[5] == '') - count_skipped
-    count_original_backups = sum(1 for r in results if r[3] == t("status.skipped"))
+    count_original_backups = sum(1 for r in results if r[3] == t('status.skipped'))
 
     # print summary report
     ext_stats = _print_summary_report(results=results,
@@ -349,7 +351,6 @@ def _process_directory(root_path: str,
                                      count_error=count_error,
                                      total_before=total_before,
                                      total_after=total_after,
-                                     print_image_reduced=print_image_reduced,
                                      print_summary=print_summary
                                      )
 
@@ -357,7 +358,7 @@ def _process_directory(root_path: str,
     if save_summary_to_csv:
         dir_path = os.path.join(root_path, summary_folder)
         os.makedirs(dir_path, exist_ok=True)
-        csv_path = os.path.join(dir_path, f'{summary_filename}_{end_time.strftime("%Y-%m-%d-%H-%M-%S")}.csv')
+        csv_path = os.path.join(dir_path, f'{summary_filename}_{end_time.strftime('%Y-%m-%d-%H-%M-%S')}.csv')
 
         _write_csv_report(csv_path=csv_path,
                         start_time=start_time,
@@ -425,10 +426,12 @@ def _should_skip(filename: str,
     Returns:
         bool: True if the file should be skipped, False otherwise.
     """
+    global SKIP_COUNT
     name, _ = os.path.splitext(filename)
     if skip_original and name.endswith(original_suffix):
         return True
     elif skip_skip and name.endswith(skip_suffix):
+        SKIP_COUNT += 1
         return True
     return False
 
@@ -485,11 +488,11 @@ def _compress_image(file_path: str,
 
         size_after = os.path.getsize(file_path)
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        return (file_path, size_before, size_after, t("status.compressed"), ext_lower, timestamp)
+        return (file_path, size_before, size_after, t('status.compressed'), ext_lower, timestamp)
 
     except Exception as e:
         timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        return (file_path, 0, 0, t("status.compress_error").format(error=e), ext_lower, timestamp)
+        return (file_path, 0, 0, t('status.compress_error').format(error=e), ext_lower, timestamp)
     
 def _backup_image(file_path: str,
                  backup_folder: str = 'original image',
@@ -521,7 +524,7 @@ def _backup_image(file_path: str,
         shutil.copy2(file_path, backup_path)
         return True, backup_path
     except Exception as e:
-        return False, t("status.backup_error").format(error=e)
+        return False, t('status.backup_error').format(error=e)
     
 def _print_summary_report(results: list,
                          start_time: datetime,
@@ -534,7 +537,6 @@ def _print_summary_report(results: list,
                          count_error: int,
                          total_before: int,
                          total_after: int,
-                         print_image_reduced: bool = True,
                          print_summary: bool = True
                          ) -> dict:
     """
@@ -552,7 +554,6 @@ def _print_summary_report(results: list,
         count_error (int): Count of images that encountered errors during compression.
         total_before (int): Total size of images before compression.
         total_after (int): Total size of images after compression.
-        print_image_reduced (bool): Whether to print reduced image details.
         print_summary (bool): Whether to print the summary report.
 
     Returns:
@@ -561,57 +562,54 @@ def _print_summary_report(results: list,
     elapsed = end_time - start_time
     ext_stats = defaultdict(lambda: {'count': 0, 'before': 0, 'after': 0})
 
-    if print_image_reduced:
-        print('\n' + t("report.header_result"))
-
     for file_path, before, after, status, ext, timestamp in results:
         if before and after:
             savings = before - after
             percent = savings / before * 100
-            if print_image_reduced:
-                print(f'{file_path}\n  ' + t("report.size_before").format(mb=before/1024) + 
-                      f' → ' + t("report.size_after").format(mb=after/1024) + 
-                      f'(' + t("report.size_saved").format(mb=(before - after)/1024, percent=percent) + ')')
             ext_stats[ext]['count'] += 1
             ext_stats[ext]['before'] += before
             ext_stats[ext]['after'] += after
-        elif print_image_reduced:
-            print(f'{file_path}\n  {status}')
 
     if print_summary:
-        print('\n' + t("report.header_summary"))
-        print(t("report.start_time").format(time=start_time.strftime('%Y-%m-%d %H:%M:%S')))
-        print(t("report.end_time").format(time=end_time.strftime('%Y-%m-%d %H:%M:%S')))
-        print(t("report.elapsed").format(elapsed=str(elapsed)))
-        print(t("report.total_images").format(count=total_files))
+        print('\n' + t('report.header_summary'))
+        print('  ' + t('report.start_time').format(time=start_time.strftime('%Y-%m-%d %H:%M:%S')))
+        print('  ' + t('report.end_time').format(time=end_time.strftime('%Y-%m-%d %H:%M:%S')))
+        print('  ' + t('report.elapsed').format(elapsed=str(elapsed)))
+        print('  ' + t('report.total_images').format(count=total_files + SKIP_COUNT))
         if count_success > 0:
             avg_time = elapsed.total_seconds() / count_success
-            print(t("report.avg_time").format(seconds=avg_time))
+            print('  ' + t('report.avg_time').format(seconds=avg_time))
         else:
-            print(t("report.no_avg_time"))
-        print(t("report.compressed_success").format(count=count_success))
-        print(t("report.skipped_backup").format(count=count_original_backups))
-        print(t("report.skipped_named").format(count=count_skipped - count_original_backups))
-        print(t("report.error_unreadable").format(count=count_unreadable))
-        print(t("report.error_failed").format(count=count_error))
-        print(t("report.size_before").format(mb=total_before / 1024 / 1024))
-        print(t("report.size_after").format(mb=total_after / 1024 / 1024))
+            print('  ' + t('report.no_avg_time'))
+        print('  ' + t('report.compressed_success').format(count=count_success))
+        print('  ' + t('report.skipped_backup').format(count=count_original_backups))
+        print('  ' + t('report.skipped_named').format(count=SKIP_COUNT))
+        print('  ' + t('report.error_unreadable').format(count=count_unreadable))
+        print('  ' + t('report.error_failed').format(count=count_error))
+        print('  ' + t('report.size_before').format(unit=t("report.MB"), size=total_before / 1024 / 1024))
+        print('  ' + t('report.size_after').format(unit=t("report.MB"), size=total_after / 1024 / 1024))
         if total_before:
-            print(t("report.size_saved").format(mb=(total_before - total_after) / 1024 / 1024,
-                                                percent=((total_before - total_after) / total_before * 100)
-                                                ))
+            print('  ' + t('report.size_saved').format(unit=t("report.MB"),
+                                                       size=(total_before - total_after) / 1024 / 1024,
+                                                       percent=((total_before - total_after) / total_before * 100)
+                                                       )
+                )
 
-        print('\n' + t("report.header_ext_summary"))
+        if count_success > 0:
+            print('\n' + t('report.header_ext_summary'))
         for ext, stats in ext_stats.items():
             before_mb = stats['before'] / 1024 / 1024
             after_mb = stats['after'] / 1024 / 1024
             savings = before_mb - after_mb
             percent = (savings / before_mb * 100) if before_mb > 0 else 0
-            print(t("report.ext_format").format(ext=ext.upper(),
-                                                count=stats["count"],
+            print('  ' + 
+                  t('report.ext_format').format(ext=ext.upper(),
+                                                count=stats['count'],
                                                 savings=before_mb - after_mb,
+                                                unit=t("report.MB"),
                                                 percent=percent
-                                                ))
+                                                )
+                  )
 
     return ext_stats
 
@@ -656,40 +654,40 @@ def _write_csv_report(csv_path: str,
         writer = csv.writer(f)
 
         # first part: general info
-        writer.writerow([t("csv.fields.start_time"), start_time.strftime('%Y-%m-%d %H:%M:%S')])
-        writer.writerow([t("csv.fields.end_time"), end_time.strftime('%Y-%m-%d %H:%M:%S')])
-        writer.writerow([t("csv.fields.elapsed"), str(elapsed)])
+        writer.writerow([t('csv.fields.start_time'), start_time.strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow([t('csv.fields.end_time'), end_time.strftime('%Y-%m-%d %H:%M:%S')])
+        writer.writerow([t('csv.fields.elapsed'), str(elapsed)])
         if count_success > 0:
             avg_time = elapsed.total_seconds() / count_success
-            writer.writerow([t("csv.fields.avg_time"), f'{avg_time:.2f}'])
+            writer.writerow([t('csv.fields.avg_time'), f'{avg_time:.2f}'])
         else:
-            writer.writerow([t("csv.fields.avg_time_unavailable"), t("csv.fields.avg_time_cannot_calculate")])
+            writer.writerow([t('csv.fields.avg_time_unavailable'), t('csv.fields.avg_time_cannot_calculate')])
         writer.writerow([])
 
-        writer.writerow([t("csv.section_general")])
-        writer.writerow([t("csv.fields.key"), t("csv.fields.value")])
-        writer.writerow([t("csv.fields.total_images"), total_files])
-        writer.writerow([t("csv.fields.compressed"), count_success])
-        writer.writerow([t("csv.fields.skipped_backup"), count_original_backups])
-        writer.writerow([t("csv.fields.skipped_named"), count_skipped - count_original_backups])
-        writer.writerow([t("csv.fields.unreadable"), count_unreadable])
-        writer.writerow([t("csv.fields.errors"), count_error])
-        writer.writerow([t("csv.fields.size_before"), f'{total_before / 1024 / 1024:.2f}'])
-        writer.writerow([t("csv.fields.size_after"), f'{total_after / 1024 / 1024:.2f}'])
+        writer.writerow([t('csv.section_general')])
+        writer.writerow([t('csv.fields.key'), t('csv.fields.value')])
+        writer.writerow([t('csv.fields.total_images'), total_files + SKIP_COUNT])
+        writer.writerow([t('csv.fields.compressed'), count_success])
+        writer.writerow([t('csv.fields.skipped_backup'), count_original_backups])
+        writer.writerow([t('csv.fields.skipped_named'), SKIP_COUNT])
+        writer.writerow([t('csv.fields.unreadable'), count_unreadable])
+        writer.writerow([t('csv.fields.errors'), count_error])
+        writer.writerow([t('csv.fields.size_before'), f'{total_before / 1024 / 1024:.2f}'])
+        writer.writerow([t('csv.fields.size_after'), f'{total_after / 1024 / 1024:.2f}'])
         if total_before:
             percent_saved = (total_before - total_after) / total_before * 100
-            writer.writerow([t("csv.fields.size_saved"), f'{(total_before - total_after) / 1024 / 1024:.2f}'])
-            writer.writerow([t("csv.fields.size_percent"), f'{percent_saved:.1f}'])
+            writer.writerow([t('csv.fields.size_saved'), f'{(total_before - total_after) / 1024 / 1024:.2f}'])
+            writer.writerow([t('csv.fields.size_percent'), f'{percent_saved:.1f}'])
         writer.writerow([])
 
         # section: extension summary
-        writer.writerow([t("csv.section_ext")])
-        writer.writerow([t("csv.fields.ext"),
-                         t("csv.fields.ext_count"),
-                         t("csv.fields.ext_before"),
-                         t("csv.fields.ext_after"),
-                         t("csv.fields.ext_saved"),
-                         t("csv.fields.ext_percent")
+        writer.writerow([t('csv.section_ext')])
+        writer.writerow([t('csv.fields.ext'),
+                         t('csv.fields.ext_count'),
+                         t('csv.fields.ext_before'),
+                         t('csv.fields.ext_after'),
+                         t('csv.fields.ext_saved'),
+                         t('csv.fields.ext_percent')
                         ])
 
         for ext, stats in ext_stats.items():
@@ -708,14 +706,14 @@ def _write_csv_report(csv_path: str,
         writer.writerow([])
 
         # third part: detailed results
-        writer.writerow([t("csv.section_detail")])
-        writer.writerow([t("csv.fields.detail_path"),
-                         t("csv.fields.detail_ext"),
-                         t("csv.fields.detail_before"),
-                         t("csv.fields.detail_after"),
-                         t("csv.fields.detail_percent"),
-                         t("csv.fields.detail_status"),
-                         t("csv.fields.detail_time")
+        writer.writerow([t('csv.section_detail')])
+        writer.writerow([t('csv.fields.detail_path'),
+                         t('csv.fields.detail_ext'),
+                         t('csv.fields.detail_before'),
+                         t('csv.fields.detail_after'),
+                         t('csv.fields.detail_percent'),
+                         t('csv.fields.detail_status'),
+                         t('csv.fields.detail_time')
                         ])
         for file_path, before, after, status, ext, timestamp in results:
             if before and after:
@@ -732,7 +730,7 @@ def _write_csv_report(csv_path: str,
             else:
                 writer.writerow([file_path, ext, '', '', '', status, timestamp])
 
-    print(t("general.saved_report").format(path=csv_path))
+    print('\n' + t('general.saved_report').format(path=csv_path))
     
 
 # main programs
