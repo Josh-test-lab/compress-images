@@ -94,6 +94,7 @@ __github__ = 'https://github.com/Josh-test-lab/compress-images'
 
 # import modules
 import os
+import sys
 import shutil
 import csv
 from datetime import datetime
@@ -248,6 +249,7 @@ def _load_language(lang_path: str = 'language/en.yaml') -> dict:
         with open(lang_path, 'r', encoding='utf-8') as f:
             return yaml.safe_load(f)
     print(f'Language file "{lang_path}" not found.')
+    sys.exit()
     return {}
 
 def t(key: str) -> str:

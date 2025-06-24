@@ -1,0 +1,87 @@
+# language/en.yaml
+general:
+  ask_input_path: "Please enter the folder path of images to compress:"
+  folder_not_found: "Folder not found. Please check the path again."
+  missing_param: "Missing parameter `{key}`, using default: {default}"
+  start_processing: "Found {count} images. Start processing..."
+  processing: "Compressing"
+  finished_processing: "Folder \"{folder}\" processing complete!"
+  saved_report: "Compression report saved to: {path}"
+
+status:
+  compressed: "Compressed successfully"
+  skipped: "Backed up, skipped"
+  skip_keyword: "Skip"
+  error_keyword: "Error"
+  backup_error: "Backup error: {error}"
+  compress_error: "Compression error: {error}"
+
+report:
+  header_summary: "Compression Summary:"
+  header_ext_summary: "File Extension Statistics:"
+
+  start_time: "Start time: {time}"
+  end_time: "End time: {time}"
+  elapsed: "Elapsed time: {elapsed}"
+  avg_time: "Average processing time: {seconds:.2f} seconds"
+
+  total_images: "Total images processed: {count}"
+  compressed_success: "Successfully compressed: {count}"
+  skipped_backup: "Backed up / Skipped: {count}"
+  skipped_named: "Skipped due to name: {count}"
+  error_unreadable: "Unreadable / Unsupported: {count}"
+  error_failed: "Compression errors: {count}"
+
+  no_avg_time: "No successful compression, unable to calculate average time"
+
+  size_before: "Original size: {size:.2f} {unit}"
+  size_after: "Compressed size: {size:.2f} {unit}"
+  size_saved: "Space saved: {size:.2f} {unit} ({percent:.1f}%)"
+  ext_format: "{ext:<6}: {count} images  Saved {savings:.2f} {unit} ({percent:.1f}%)"
+  KB: "KB"
+  MB: "MB"
+  GB: "GB"
+
+csv:
+  section_general: "Compression Summary:"
+  section_ext: "File Extension Statistics:"
+  section_detail: "File Details:"
+
+  fields:
+    key: "Item"
+    value: "Value"
+
+    start_time: "Start Time"
+    end_time: "End Time"
+    elapsed: "Elapsed Time"
+    avg_time: "Average Time (seconds)"
+    avg_time_unavailable: "Average Time"
+    avg_time_cannot_calculate: "Unable to calculate"
+
+    total_images: "Total Images"
+    compressed: "Successfully Compressed"
+    skipped_backup: "Backed up / Skipped"
+    skipped_named: "Skipped by Name"
+    unreadable: "Unreadable / Unsupported"
+    errors: "Compression Errors"
+
+    size_before: "Original Size (MB)"
+    size_after: "Compressed Size (MB)"
+    size_saved: "Space Saved (MB)"
+    size_percent: "Space Saved (%)"
+
+    ext: "Extension"
+    ext_count: "Image Count"
+    ext_before: "Original Size (MB)"
+    ext_after: "Compressed Size (MB)"
+    ext_saved: "Space Saved (MB)"
+    ext_percent: "Space Saved (%)"
+
+    detail_path: "File Path"
+    detail_ext: "Extension"
+    detail_before: "Original Size (KB)"
+    detail_after: "Compressed Size (KB)"
+    detail_percent: "Space Saved (%)"
+    detail_status: "Status"
+    detail_time: "Processing Time"
+
