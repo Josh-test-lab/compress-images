@@ -11,6 +11,7 @@ This script compresses all images in a specified directory with optional backup 
 - Email: hyc0113@hlc.edu.tw
 - GitHub: https://github.com/Josh-test-lab/compress-images
 - Website: https://yao-chih.netlify.app/en/image-compression-tools
+- Python Version: 3.12.9 for Windows
 
 ------------------------
 Command Line Arguments:
