@@ -10,6 +10,7 @@ This script compresses all images in a specified directory with optional backup 
 - License: MIT License
 - Email: hyc0113@hlc.edu.tw
 - GitHub: https://github.com/Josh-test-lab/compress-images
+- Website: https://yao-chih.netlify.app/en/image-compression-tools
 
 ------------------------
 Command Line Arguments:
